@@ -2,19 +2,31 @@
 
 var request = require( 'request' );
 var cheerio = require( 'cheerio' );
+
 var thzHost = 'http://thz.la/';
 
 function requestThread( done ) {
 
-   request( thzHost + 'forum-220-1.html', function( err, res, body ) {
+   request( {
 
-      var threadUrl = [];
+      method: 'GET',
+      uri: thzHost + 'forum-220-1.html'
+
+   }, function ( err, res, body ) {
+
+      if ( err || res.statusCode !== 200 ) {
+         return done.fail( res.statusCode );
+      }
+
+      var threadUrlList = [];
       var $ = cheerio.load( body );
 
-      var threadList = $( '#threadlisttableid' ).children( 'tbody' );
+      var threadList = $( '#threadlisttableid' ).children();
+
       threadList.each( function ( idx, thread ) {
 
-          var turl = $( 'tr th', thread ).children()
+          var threadUrl = $( 'tr th', thread )
+            .children()
             .filter( function ( idx, el ) {
 
                var href = $( el ).attr( 'href' );
@@ -27,11 +39,11 @@ function requestThread( done ) {
             } )
             .attr( 'href' );
 
-         if ( turl ) threadUrl.push( thzHost + turl );
+         if ( threadUrl ) threadUrlList.push( thzHost + threadUrl );
 
       } );
 
-      done( threadUrl );
+      done( threadUrlList );
 
    } );
 

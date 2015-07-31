@@ -37,6 +37,10 @@ app.get( '/api/thread', function ( req, res ) {
       } )
       .val( function ( threadList ) {
          res.status( 200 ).json( threadList );
+      } )
+		.or( function ( err ) {
+         console.log( chalk.red( err ) );
+         res.status( 500 ).end();
       } );
 
 } );
@@ -53,7 +57,7 @@ app.post( '/api/post', function ( req, res ) {
          res.status( 200 ).json( imgUrlList );
       } )
       .or( function ( err ) {
-         console.err( chalk.red( err ) );
+         console.log( chalk.red( err ) );
          res.status( 500 ).end();
       } );
 
@@ -72,7 +76,7 @@ app.get( '/api/test', function ( req, res ) {
          res.status( 200 ).json( imgUrlList );
       } )
       .or( function ( err ) {
-         console.err( chalk.red( err ) );
+         console.log( chalk.red( err ) );
          res.status( 500 ).end();
       } );
 
