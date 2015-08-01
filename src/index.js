@@ -5,70 +5,126 @@ angular.module( 'app', [
 .controller( 'MainCtrl', [ '$scope', '$http', 'ENDPOINT_URI', function ( $scope, $http, ENDPOINT_URI )  {
 
    var vm = this;
-   var fullThreadList = [];
+   var loadedThreadList = [];
+   var currPage = 13;
+   var nextPage = false;
+   var canAdd = true;
    vm.threadList = [];
 
-   vm.addMore = throttle( function() {
-      if ( fullThreadList.length > 0 ) {
-         var thread = fullThreadList.shift();
-         vm.threadList.push( thread );
-         console.log( 'moar.' );
-      } else {
-         console.log( 'no moar.' );
+   vm.enableAddMore = () => canAdd = true;
+   vm.disableAddMore = () => canAdd = false;
+
+   vm.addMore = function( force ) {
+
+      if ( !canAdd && !force) {
+         return;
       }
-   }, 1000 );
+
+      if ( loadedThreadList.length > 0 ) {
+
+         vm.threadList.push( loadedThreadList.shift() );
+         console.log( 'loading thread:', vm.threadList.length );
+
+      } else {
+
+         console.log( 'end of page.' );
+
+         if ( nextPage ) {
+            loadThread();
+            nextPage = false;
+         }
+
+      }
+
+   };
 
    global.MORE = function () {
       vm.addMore();
       $scope.$apply();
    };
 
-   $http.get( ENDPOINT_URI + 'thread' )
-      .success( function( fullThreadList_ ) {
-         console.log( fullThreadList_.length );
-         console.log( fullThreadList_ );
-         fullThreadList = fullThreadList_;
+   function loadThread() {
+
+      console.log( 'loading page:', currPage );
+      $http.get( ENDPOINT_URI + 'thread/' + currPage )
+      .success( function( loadedThreadList_ ) {
+
+         console.log( loadedThreadList_.length );
+         console.log( loadedThreadList_ );
+         loadedThreadList = loadedThreadList_;
+
+         currPage ++;
+         nextPage = true;
+
          vm.addMore();
+         vm.addMore();
+
       } )
       .error( function( err ) {
          console.warn( err );
       } );
 
-   function throttle( fn, threshhold, scope ) {
-   	if ( !threshhold ) threshhold = 250;
-   	var last,
-   		deferTimer;
-   	return function () {
-   		var context = scope || this;
-
-   		var now = +new Date,
-   			args = arguments;
-   		if ( last && now < last + threshhold ) {
-   			clearTimeout( deferTimer );
-   			deferTimer = setTimeout( function () {
-   				last = now;
-   				fn.apply( context, args );
-   			}, threshhold );
-   		} else {
-   			last = now;
-   			fn.apply( context, args );
-   		}
-   	};
    }
 
-} ] )
-.directive( 'imgPost', [ '$http', 'ENDPOINT_URI', function ( $http, ENDPOINT_URI ) {
+   loadThread();
 
-   function link( $scope, $elem ) {
+} ] )
+.directive( 'threadList', [ function () {
+
+   return {
+
+      restrict: 'E',
+      scope: true,
+      template: '<thread-item ng-repeat="thread in main.threadList"></thread-item>'
+
+   };
+
+} ] )
+.directive( 'threadItem', [ '$http', 'ENDPOINT_URI', function ( $http, ENDPOINT_URI ) {
+
+   function controller( $scope ) {
+
+      $scope.main.disableAddMore();
+
+      $scope.loadComplete = false;
+      var totalImgs = 0;
+      var loaded = 0;
+
+      $scope.itemEnd = function () {
+         loaded ++;
+         if ( loaded >= totalImgs ) {
+
+            $scope.loadComplete = true;
+            $scope.main.enableAddMore();
+
+            $scope.$apply();
+            console.log( 'complete', $scope );
+            console.log( '----------------------------' );
+         }
+      };
 
       $http.post( ENDPOINT_URI + 'post', { thread: $scope.thread } )
-         .success( function( data ) {
-            console.log( data );
-            $scope.imgUrlList = data.imgUrlList;
-         } )
-         .error( function( err ) {
-            console.warn( err );
-         } );
+      .success( function( res ) {
+
+         $scope.imgUrlList = res.imgUrlList;
+         totalImgs = res.imgUrlList.length;
+
+         console.log( 'loading', totalImgs, 'imgs' );
+
+         if ( totalImgs === 0 ) {
+            $scope.loadComplete = true;
+            $scope.main.enableAddMore();
+            console.log( 'complete', $scope );
+         }
+
+      } )
+      .error( function( err ) {
+
+         console.warn( 'threadItem directive POST ERR:', err );
+         $scope.loadComplete = true;
+         $scope.main.enableAddMore();
+
+      } );
 
    }
 
@@ -77,8 +133,48 @@ angular.module( 'app', [
       restrict: 'E',
       replace: true,
       scope: true,
-      link: link,
-      template: '<div><img ng-repeat="url in imgUrlList" ng-src="{{url}}" width="250px"><br><a href="{{thread}}">{{thread}}</a><br><br></div>'
+      controller,
+      controllerAs: 'tItem',
+      template: [
+         '<div>',
+            '<div ng-hide="loadComplete" style="height: 50px; background: #c3c3c3">',
+               'LOADING...',
+            '</div>',
+            '<div ng-show="loadComplete">',
+               '<thread-img ng-repeat="url in imgUrlList"></thread-img>',
+               '<br>',
+               '<a href="{{thread}}">{{thread}}</a>',
+               '<br><br>',
+            '</div>',
+         '</div>'
+      ].join('')
+   };
+
+} ] )
+.directive( 'threadImg', [ function () {
+
+   function controller( $scope, $element ) {
+
+      $element
+      .on( 'load', function () {
+         console.log( ' img done.' );
+         $scope.itemEnd();
+      } )
+      .on( 'error', function () {
+         console.warn( 'img load err.' );
+         $scope.itemEnd();
+      } );
+
+   }
+
+   return {
+
+      restrict: 'E',
+      replace: true,
+      scope: true,
+      controller,
+      controllerAs: 'tImg',
+      template: '<img ng-src="{{url}}" width="500px">'
 
    };
 

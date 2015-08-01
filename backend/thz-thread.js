@@ -4,17 +4,22 @@ var request = require( 'request' );
 var cheerio = require( 'cheerio' );
 
 var thzHost = 'http://thz.la/';
+var forumid = 220; // cen: 220, uncen: 181
 
-function requestThread( done ) {
+function requestThread( done, page ) {
 
    request( {
 
       method: 'GET',
-      uri: thzHost + 'forum-220-1.html'
+      uri: thzHost + 'forum-' + forumid + '-' + page + '.html'
 
    }, function ( err, res, body ) {
 
-      if ( err || res.statusCode !== 200 ) {
+      if ( err ) {
+         return done.fail( err );
+      }
+
+      if ( res.statusCode !== 200 ) {
          return done.fail( res.statusCode );
       }
 

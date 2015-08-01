@@ -14,7 +14,11 @@ function requestPost( done, threadUrl ) {
 
    }, function ( err, res, body ) {
 
-      if ( err || res.statusCode !== 200 ) {
+      if ( err ) {
+         return done.fail( err );
+      }
+
+      if ( res.statusCode !== 200 ) {
          return done.fail( res.statusCode );
       }
 

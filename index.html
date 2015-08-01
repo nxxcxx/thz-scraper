@@ -17,10 +17,8 @@
    </head>
    <body ng-controller="MainCtrl as main">
 
-      <div infinite-scroll="main.addMore()" infinite-scroll-distance="0" style="background: crimson;">
-         <div ng-repeat="thread in main.threadList">
-            <img-post></img-post>
-         </div>
+      <div infinite-scroll="main.addMore()" infinite-scroll-distance="2" style="background: crimson;">
+         <thread-list></thread-list>
       </div>
 
    </body>
