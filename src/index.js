@@ -6,7 +6,7 @@ angular.module( 'app', [
 
    var vm = this;
    var loadedThreadList = [];
-   var currPage = 13;
+   var currPage = 1;
    var nextPage = false;
    var canAdd = true;
    vm.threadList = [];
